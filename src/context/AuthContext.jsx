@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-
+import { API_URL } from '../config'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -14,27 +14,45 @@ export function AuthProvider({ children }) {
         setLoading(false)
     }, [])
 
-    const register = (name, email, password) => {
-        const users = JSON.parse(localStorage.getItem('forkreview_users') || '[]')
-        const exists = users.find(u => u.email === email)
-        if (exists) throw new Error('Este correo ya está registrado.')
-        const newUser = { id: Date.now(), name, email, password, joined: new Date().toISOString() }
-        users.push(newUser)
-        localStorage.setItem('forkreview_users', JSON.stringify(users))
-        const { password: _, ...safe } = newUser
-        setUser(safe)
-        localStorage.setItem('forkreview_user', JSON.stringify(safe))
-        return safe
+    const register = async (name, email, password) => {
+        try {
+            const response = await fetch(`${API_URL}/usuarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.mensaje || 'Error al registrar usuario.');
+            }
+            
+            // Auto login después del registro
+            return await login(email, password);
+        } catch (error) {
+            throw error;
+        }
     }
 
-    const login = (email, password) => {
-        const users = JSON.parse(localStorage.getItem('forkreview_users') || '[]')
-        const found = users.find(u => u.email === email && u.password === password)
-        if (!found) throw new Error('Credenciales incorrectas. Verifica tu correo y contraseña.')
-        const { password: _, ...safe } = found
-        setUser(safe)
-        localStorage.setItem('forkreview_user', JSON.stringify(safe))
-        return safe
+    const login = async (email, password) => {
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.mensaje || 'Credenciales incorrectas. Verifica tu correo y contraseña.');
+            }
+
+            setUser(data.usuario);
+            localStorage.setItem('forkreview_user', JSON.stringify(data.usuario));
+            return data.usuario;
+        } catch (error) {
+            throw error;
+        }
     }
 
     const logout = () => {

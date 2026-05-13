@@ -2,25 +2,83 @@ import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import ReviewCard from '../components/ReviewCard'
 import AddReviewModal from '../components/AddReviewModal'
-import { REVIEWS_DATA, CATEGORIES } from '../data/reviews'
+import { CATEGORIES } from '../data/reviews'
 import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../config'
 
 export default function HomePage() {
     const { user } = useAuth()
-    const [reviews, setReviews] = useState(REVIEWS_DATA)
+    const [reviews, setReviews] = useState([])
     const [filter, setFilter] = useState('Todas')
     const [showModal, setShowModal] = useState(false)
     const [toast, setToast] = useState('')
     const [search, setSearch] = useState('')
+    const [loading, setLoading] = useState(true)
+
+    const fetchReviews = async () => {
+        try {
+            const res = await fetch(`${API_URL}/resenas`)
+            const data = await res.json()
+            setReviews(data)
+        } catch (error) {
+            console.error("Error fetching reviews:", error)
+            showToast('Error al cargar las reseñas')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchReviews()
+    }, [])
 
     const showToast = (msg) => {
         setToast(msg)
         setTimeout(() => setToast(''), 3000)
     }
 
-    const handleAddReview = (review) => {
-        setReviews(prev => [review, ...prev])
-        showToast('¡Reseña publicada con éxito! 🎉')
+    const handleAddReview = async (review) => {
+        try {
+            // 1. Crear restaurante primero
+            const resRest = await fetch(`${API_URL}/restaurantes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: review.restaurant,
+                    location: review.location,
+                    category: review.category,
+                    image: review.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80'
+                })
+            })
+            const dataRest = await resRest.json()
+            if (!resRest.ok) throw new Error(dataRest.mensaje)
+
+            // 2. Crear reseña vinculada al restaurante
+            const resRev = await fetch(`${API_URL}/resenas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    restaurant_id: dataRest.id,
+                    rating: review.rating,
+                    text: review.text,
+                    image: review.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80',
+                    author: user.name,
+                    author_initial: user.name.charAt(0).toUpperCase(),
+                    date: review.date,
+                    likes: 0,
+                    category: review.category
+                })
+            })
+            const dataRev = await resRev.json()
+            if (!resRev.ok) throw new Error(dataRev.mensaje)
+
+            showToast('¡Reseña publicada con éxito! 🎉')
+            fetchReviews() // Recargar para ver la nueva reseña
+        } catch (error) {
+            console.error(error)
+            showToast('Error al publicar la reseña')
+        }
     }
 
     const filtered = reviews.filter(r => {
@@ -129,7 +187,11 @@ export default function HomePage() {
                 </div>
 
                 {/* Grid */}
-                {filtered.length > 0 ? (
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--clr-muted)' }}>
+                        <p>Cargando reseñas...</p>
+                    </div>
+                ) : filtered.length > 0 ? (
                     <div className="reviews-grid">
                         {filtered.map(r => <ReviewCard key={r.id} review={r} />)}
                     </div>
