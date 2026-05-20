@@ -4,11 +4,12 @@ import cors from 'cors';
 const app = express();
 const corsOptions = {
   origin: [
-    'https://main.d3eajmsoec55oz.amplifyapp.com'
+    'https://main.d3eajmsoec55oz.amplifyapp.com',
+     'https://d4d3f8uoz419y.cloudfront.net'
   ],
   methods:['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders:['Content-Type','Authorization'],
-  credential:true,
+  credentials:true,
   optionsSuccessStatus:200
 }
 app.use(cors(corsOptions));
