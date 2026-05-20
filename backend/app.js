@@ -1,21 +1,25 @@
 import express from 'express';
-import mysql from 'mysql2/promise'; // IMPORTANTE: Usar la versión con promesas
+import mysql from 'mysql2/promise';
 import cors from 'cors';
+
 const app = express();
+
 const corsOptions = {
   origin: [
     'https://main.d3eajmsoec55oz.amplifyapp.com',
-     'https://d4d3f8uoz419y.cloudfront.net'
+    'https://d4d3f8uoz419y.cloudfront.net'
   ],
-  methods:['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders:['Content-Type','Authorization'],
-  credentials:true,
-  optionsSuccessStatus:200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }
+
 app.use(cors(corsOptions));
 app.use(express.json());
+
 const PORT = process.env.PORT || 3000;
-// --- Conexión mediante Pool (Mejor para múltiples conexiones simultáneas) ---
+
 const pool = mysql.createPool({
   host: 'database-1.cqfeaks26lig.us-east-1.rds.amazonaws.com',
   port: 3306,
@@ -26,7 +30,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
-// Probar la conexión al iniciar el servidor
+
 pool.getConnection()
   .then(conn => {
     console.log('¡Conexión exitosa a la base de datos MySQL (AWS RDS)!');
@@ -35,20 +39,20 @@ pool.getConnection()
   .catch(err => {
     console.error('Error conectando a la base de datos:', err);
   });
-// Ruta básica
+
 app.get('/', (req, res) => {
   res.send('API de Restaurantes funcionando correctamente');
 });
+
 // ==========================================
-// RUTAS PARA USUARIOS (Tabla: User)
+// RUTAS PARA USUARIOS
 // ==========================================
-// Crear un usuario (POST /usuarios)
-app.post('/usuarios', async (req, res) => {
+app.post('/api/usuarios', async (req, res) => {
   const { name, email, password } = req.body;
   let conn;
   try {
     conn = await pool.getConnection();
-    const joined = new Date(); // Fecha actual
+    const joined = new Date();
     const [result] = await conn.query(
       'INSERT INTO User (name, email, password, joined) VALUES (?, ?, ?, ?)',
       [name, email, password, joined]
@@ -61,13 +65,16 @@ app.post('/usuarios', async (req, res) => {
     if (conn) conn.release();
   }
 });
-// Iniciar sesión (POST /login)
-app.post('/login', async (req, res) => {
+
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   let conn;
   try {
     conn = await pool.getConnection();
-    const [rows] = await conn.query('SELECT id, name, email, joined FROM User WHERE email = ? AND password = ?', [email, password]);
+    const [rows] = await conn.query(
+      'SELECT id, name, email, joined FROM User WHERE email = ? AND password = ?',
+      [email, password]
+    );
     if (rows.length > 0) {
       res.json({ ok: true, usuario: rows[0] });
     } else {
@@ -80,12 +87,12 @@ app.post('/login', async (req, res) => {
     if (conn) conn.release();
   }
 });
-// Obtener todos los usuarios (GET /usuarios)
-app.get('/usuarios', async (req, res) => {
+
+app.get('/api/usuarios', async (req, res) => {
   let conn;
   try {
     conn = await pool.getConnection();
-    const [rows] = await conn.query('SELECT id, name, email, joined FROM User'); // Excluimos el password por seguridad
+    const [rows] = await conn.query('SELECT id, name, email, joined FROM User');
     res.json(rows);
   } catch (error) {
     console.error(error);
@@ -94,11 +101,11 @@ app.get('/usuarios', async (req, res) => {
     if (conn) conn.release();
   }
 });
+
 // ==========================================
-// RUTAS PARA RESTAURANTES (Tabla: Restaurant)
+// RUTAS PARA RESTAURANTES
 // ==========================================
-// Crear un restaurante (POST /restaurantes)
-app.post('/restaurantes', async (req, res) => {
+app.post('/api/restaurantes', async (req, res) => {
   const { name, location, category, image } = req.body;
   let conn;
   try {
@@ -115,8 +122,8 @@ app.post('/restaurantes', async (req, res) => {
     if (conn) conn.release();
   }
 });
-// Obtener todos los restaurantes (GET /restaurantes)
-app.get('/restaurantes', async (req, res) => {
+
+app.get('/api/restaurantes', async (req, res) => {
   let conn;
   try {
     conn = await pool.getConnection();
@@ -129,11 +136,11 @@ app.get('/restaurantes', async (req, res) => {
     if (conn) conn.release();
   }
 });
+
 // ==========================================
-// RUTAS PARA RESEÑAS (Tabla: Review)
+// RUTAS PARA RESEÑAS
 // ==========================================
-// Crear una reseña (POST /resenas)
-app.post('/resenas', async (req, res) => {
+app.post('/api/resenas', async (req, res) => {
   const { user_id, restaurant_id, rating, text, image, author, author_initial, date, likes, category } = req.body;
   let conn;
   try {
@@ -152,8 +159,8 @@ app.post('/resenas', async (req, res) => {
     if (conn) conn.release();
   }
 });
-// Obtener reseñas, opcionalmente filtradas por restaurante_id (GET /resenas?restaurant_id=X)
-app.get('/resenas', async (req, res) => {
+
+app.get('/api/resenas', async (req, res) => {
   const { restaurant_id } = req.query;
   let conn;
   try {
@@ -167,16 +174,11 @@ app.get('/resenas', async (req, res) => {
       LEFT JOIN Restaurant ON Review.restaurant_id = Restaurant.id
     `;
     let params = [];
-
-    // Si se envía el query parameter restaurant_id, filtramos
     if (restaurant_id) {
       query += ' WHERE Review.restaurant_id = ?';
       params.push(restaurant_id);
     }
-    
-    // Ordenar de más reciente a más antiguo
     query += ' ORDER BY Review.id DESC';
-
     const [rows] = await conn.query(query, params);
     res.json(rows);
   } catch (error) {
@@ -186,9 +188,7 @@ app.get('/resenas', async (req, res) => {
     if (conn) conn.release();
   }
 });
-// ==========================================
-// Iniciar el servidor
-// ==========================================
+
 app.listen(PORT, () => {
   console.log(`Servidor API corriendo en http://localhost:${PORT}`);
 });
