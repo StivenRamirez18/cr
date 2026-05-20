@@ -2,7 +2,16 @@ import express from 'express';
 import mysql from 'mysql2/promise'; // IMPORTANTE: Usar la versión con promesas
 import cors from 'cors';
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: [
+    'https://main.d3eajmsoec55oz.amplifyapp.com'
+  ],
+  methods:['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders:['Content-Type','Authorization'],
+  credential:true,
+  optionsSuccessStatus:200
+}
+app.use(cors(corsOptions));
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
 // --- Conexión mediante Pool (Mejor para múltiples conexiones simultáneas) ---
