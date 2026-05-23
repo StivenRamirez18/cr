@@ -60,6 +60,9 @@ app.post('/usuarios', async (req, res) => {
     if (conn) conn.release();
   }
 });
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // ← agrega esta línea aquí
+app.use(express.json());
 // Iniciar sesión (POST /login)
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
