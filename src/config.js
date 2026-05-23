@@ -1,1 +1,1 @@
-export const API_URL = 'http://reviews-env.eba-u3p2hi7c.us-east-1.elasticbeanstalk.com';
+export const API_URL = 'https://d3iiypj0enuezy.cloudfront.net';
