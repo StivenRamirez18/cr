@@ -4,7 +4,7 @@ import cors from 'cors';
 const app = express();
 const corsOptions = {
   origin: [
-    'https://main.d3eajmsoec55oz.amplifyapp.com'
+    'https://main.diqvvez5ysdob.amplifyapp.com'
   ],
   methods:['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders:['Content-Type','Authorization'],
