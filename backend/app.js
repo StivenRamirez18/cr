@@ -2,23 +2,17 @@ import express from 'express';
 import mysql from 'mysql2/promise';
 
 const app = express();
-
-// CORS manual - garantiza headers en todas las respuestas
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://main.d3obtzx7klk7yu.amplifyapp.com');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
+const corsOptions = {
+  origin: 'https://main.d3obtzx7klk7yu.amplifyapp.com', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 const pool = mysql.createPool({
   host: 'database-1.cqfeaks26lig.us-east-1.rds.amazonaws.com',
